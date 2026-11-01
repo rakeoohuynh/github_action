@@ -17,6 +17,9 @@ jobs:
               run: |
                 ls -la
                 test -f README.md
+                echo "status = success" >> $GITHUB_OUTPUT
+            - name: show
+              run: echo ${{steps.check.outputs.status}}
 
 
     # job_build:
