@@ -1,0 +1,24 @@
+name: Practice Workflow
+
+on:
+  
+  workflow_dispatch:
+
+jobs:
+    job_check:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout source
+              uses: actions/checkout@v7.0.1
+            
+            - name: Show source
+              run: ls -la
+
+
+    # job_build:
+    #     runs-on: ubuntu-latest
+            
+    # job_deploy:
+    #     runs-on: ubuntu-latest
+            
