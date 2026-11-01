@@ -9,7 +9,7 @@ jobs:
         runs-on: ubuntu-latest
 
         outputs:
-          job_check_status: steps.check.outputs.status
+          job_check_status: ${{ steps.check.outputs.status }}
 
         steps:
             - name: Checkout source
@@ -20,16 +20,22 @@ jobs:
               run: |
                 ls -la
                 test -f README.md
-                echo "status=success" >> $GITHUB_OUTPUT
+                echo "status=failed" >> $GITHUB_OUTPUT
             - name: show
               run: echo ${{steps.check.outputs.status}}
 
 
     job_build:
         runs-on: ubuntu-latest
-
         outputs:
-          job_build_status: "success"
+          job_check_status: ${{ steps.build.outputs.status }}
+
+        steps:
+          - name: output
+            id: build
+            run:  echo "status=success" >> $GITHUB_OUTPUT
+
+
             
 
 
