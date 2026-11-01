@@ -28,7 +28,7 @@ jobs:
     job_build:
         runs-on: ubuntu-latest
         outputs:
-          job_check_status: ${{ steps.build.outputs.status }}
+          job_build_status: ${{ steps.build.outputs.status }}
 
         steps:
           - name: output
