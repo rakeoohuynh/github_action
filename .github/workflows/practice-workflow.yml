@@ -33,7 +33,7 @@ jobs:
         steps:
           - name: output
             id: build
-            run:  echo "status=success" >> $GITHUB_OUTPUT
+            run: echo "status=success" >> $GITHUB_OUTPUT
 
 
             
