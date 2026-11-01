@@ -12,8 +12,11 @@ jobs:
             - name: Checkout source
               uses: actions/checkout@v7.0.1
             
-            - name: Show source
-              run: ls -la
+            - name: Check README file
+              id: check
+              run: |
+                ls -la
+                test -f README.md
 
 
     # job_build:
