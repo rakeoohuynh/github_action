@@ -8,6 +8,9 @@ jobs:
     job_check:
         runs-on: ubuntu-latest
 
+        outputs:
+          job_check_status: steps.check.outputs.status
+
         steps:
             - name: Checkout source
               uses: actions/checkout@v7.0.1
@@ -22,9 +25,22 @@ jobs:
               run: echo ${{steps.check.outputs.status}}
 
 
-    # job_build:
-    #     runs-on: ubuntu-latest
+    job_build:
+        runs-on: ubuntu-latest
+
+        outputs:
+          job_build_status: "success"
             
-    # job_deploy:
-    #     runs-on: ubuntu-latest
+
+
+    job_deploy:
+        runs-on: ubuntu-latest
+        needs: [job_check, job_build]
+
+        steps:
+          - name: Show status job check
+            run: echo ${{needs.job_check.outputs.job_check_status}}
+
+          - name: Show status job build
+            run: echo ${{needs.job_build.outputs.job_build_status}}
             
