@@ -65,10 +65,10 @@ jobs:
 
             
             - name : Build image docker
-              run: docker build -t go_bin_be_img . 
+              run: docker build -t go_gin_be_img .
 
             - name: Move image to server_address
-              run: docker save go_bin_be_img | gzip | ssh $SSH_SERVER "gunzip | docker load" 
+              run: docker save go_gin_be_img | gzip | ssh $SSH_SERVER "gunzip | docker load" 
 
     job_deploy:
         runs-on: ubuntu-latest
