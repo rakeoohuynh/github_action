@@ -20,21 +20,13 @@ jobs:
               uses: actions/checkout@v7.0.1
 
             - name: Use common
-              uses: ./.github/actions/common.yml
+              uses: ./.github/actions
               with:
                 ssh-key: ${{secrets.SSH_KEY}}
                 ssh-ip: ${{secrets.SSH_IP}}
 
             - name: Check Dockerfile file
               run: test -f Dockerfile
-
-            - name: webfactory/ssh-agent
-              uses: webfactory/ssh-agent@v0.10.0
-              with:
-                ssh-private-key: ${{secrets.SSH_KEY}}
-            
-            - name: Trust Host
-              run: ssh-keyscan -H ${{secrets.SSH_IP}} >> ~/.ssh/known_hosts
 
             - name: Check env file
               run: |
@@ -63,17 +55,12 @@ jobs:
             - name: Checkout source
               uses: actions/checkout@v7.0.1
 
-            - name: TruffleHog OSS
-              uses: trufflesecurity/trufflehog@v3.99.7
-
-
-            - name: webfactory/ssh-agent
-              uses: webfactory/ssh-agent@v0.10.0
+            - name: Use common
+              uses: ./.github/actions
               with:
-                ssh-private-key: ${{secrets.SSH_KEY}}
-            
-            - name: Trust Host
-              run: ssh-keyscan -H ${{secrets.SSH_IP}} >> ~/.ssh/known_hosts
+                ssh-key: ${{secrets.SSH_KEY}}
+                ssh-ip: ${{secrets.SSH_IP}}
+
 
             
             - name : Build image docker
