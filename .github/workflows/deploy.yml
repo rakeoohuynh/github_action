@@ -1,8 +1,8 @@
 name: Practice WorkFlow
 
 on:
-    #   push:
-    workflow_dispatch:
+    push:
+      branches: [main]
 
 jobs:
     job_check:
