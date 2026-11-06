@@ -39,6 +39,16 @@ jobs:
                     test -f .env
                   "
 
+            - name: Check docker compose file
+              run: |
+                  ssh ${{secrets.SSH_USER}}@${{secrets.SSH_IP}} "
+                    set -e
+
+                    cd /home/ubuntu/devops_05
+                    ls -la
+                    test -f docker-compose.yml
+                  "
+
     # job_build:
     #     runs-on: ubuntu-latest
 
