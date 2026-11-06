@@ -19,10 +19,13 @@ jobs:
             - name: Checkout source
               uses: actions/checkout@v7.0.1
 
-            - name: TruffleHog OSS
-              uses: trufflesecurity/trufflehog@v3.99.7
+            - name: Use common
+              uses: ./.github/actions/common.yml
+              with:
+                ssh-key: ${{secrets.SSH_KEY}}
+                ssh-ip: ${{secrets.SSH_IP}}
 
-            - name: Check Readme file
+            - name: Check Dockerfile file
               run: test -f Dockerfile
 
             - name: webfactory/ssh-agent
