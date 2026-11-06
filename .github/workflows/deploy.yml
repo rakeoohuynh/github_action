@@ -3,6 +3,10 @@ name: Deploy
 on:
     push:
       branches: [main]
+env:
+  SSH_SERVER: ${{secrets.SSH_USER}}@${{secrets.SSH_IP}}
+  WORK_DIR: /home/ubuntu/devops_05/go_gin_be
+  COMPOSE_FILE_DIR: /home/ubuntu/devops_05
 
 jobs:
     job_check:
@@ -31,20 +35,20 @@ jobs:
 
             - name: Check env file
               run: |
-                  ssh ${{secrets.SSH_USER}}@${{secrets.SSH_IP}} "
+                  ssh $SSH_SERVER "
                     set -e
 
-                    cd /home/ubuntu/devops_05/go_gin_be
+                    cd $WORK_DIR
                     ls -la
                     test -f .env
                   "
 
             - name: Check docker compose file
               run: |
-                  ssh ${{secrets.SSH_USER}}@${{secrets.SSH_IP}} "
+                  ssh $SSH_SERVER "
                     set -e
 
-                    cd /home/ubuntu/devops_05
+                    cd $COMPOSE_FILE_DIR
                     ls -la
                     test -f docker-compose.yml
                   "
