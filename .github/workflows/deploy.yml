@@ -7,6 +7,7 @@ env:
   SSH_SERVER: ${{secrets.SSH_USER}}@${{secrets.SSH_IP}}
   WORK_DIR: /home/ubuntu/devops_05/go_gin_be
   COMPOSE_FILE_DIR: /home/ubuntu/devops_05
+  COMPOSE_SERVICE:  go_bin_be
 
 jobs:
     job_check:
@@ -69,7 +70,33 @@ jobs:
             - name: Move image to server_address
               run: docker save go_bin_be_img | gzip | ssh $SSH_SERVER "gunzip | docker load" 
 
-    # job_deploy:
+    job_deploy:
+        runs-on: ubuntu-latest
+        needs: [job_check,job_build]
+
+        steps:
+            - name: Checkout source
+              uses: actions/checkout@v7.0.1
+
+            - name: Use common
+              uses: ./.github/actions
+              with:
+                ssh-key: ${{secrets.SSH_KEY}}
+                ssh-ip: ${{secrets.SSH_IP}}
+
+
+            
+            - name : Build image docker
+              run: |
+                  ssh $SSH_SERVER 
+                    set -e
+                    cd $COMPOSE_FILE_DIR
+                    docker compose up -d --force-recreate $COMPOSE_SERVICE
+                  "
+
+
+    
+    # job_noti:
     #     runs-on: ubuntu-latest
     #     needs: [job_check, job_build]
 
