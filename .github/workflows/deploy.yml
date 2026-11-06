@@ -7,7 +7,7 @@ env:
   SSH_SERVER: ${{secrets.SSH_USER}}@${{secrets.SSH_IP}}
   WORK_DIR: /home/ubuntu/devops_05/go_gin_be
   COMPOSE_FILE_DIR: /home/ubuntu/devops_05
-  COMPOSE_SERVICE:  go_bin_be
+  COMPOSE_SERVICE:  go_gin_be
 
 jobs:
     job_check:
@@ -86,9 +86,9 @@ jobs:
 
 
             
-            - name : Build image docker
+            - name : Run new image
               run: |
-                  ssh $SSH_SERVER 
+                  ssh $SSH_SERVER "
                     set -e
                     cd $COMPOSE_FILE_DIR
                     docker compose up -d --force-recreate $COMPOSE_SERVICE
