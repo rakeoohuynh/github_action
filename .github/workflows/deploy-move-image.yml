@@ -96,56 +96,47 @@ jobs:
 
 
     
-    # job_noti:
-    #     runs-on: ubuntu-latest
-    #     needs: [job_check, job_build]
+    job_noti:
+        runs-on: ubuntu-latest
+        needs: [job_deploy]
 
-    #     steps:
-    #         - name: Checkout source
-    #           id: check-source
-    #           uses: actions/checkout@v7.0.1
+        steps:
+            - name: Checkout source
+              id: check-source
+              uses: actions/checkout@v7.0.1
 
-    #         - name: TruffleHog OSS
-    #           uses: trufflesecurity/trufflehog@v3.99.7
+            - name: Prepaser HTML
+              env:
+                  REPOSITORY: ${{ github.repository }}
+                  REPOSITORY_OWNER: ${{ github.repository_owner }}
+                  BRANCH: ${{ github.ref_name }}
+                  REF: ${{ github.ref }}
+                  COMMIT_SHA: ${{ github.sha }}
+                  ACTOR: ${{ github.actor }}
+                  WORKFLOW_NAME: ${{ github.workflow }}
+                  JOB_NAME: ${{ github.job }}
+                  EVENT_NAME: ${{ github.event_name }}
+                  RUN_ID: ${{ github.run_id }}
+                  RUN_NUMBER: ${{ github.run_number }}
+                  RUN_ATTEMPT: ${{ github.run_attempt }}
+                  SERVER_URL: ${{ github.server_url }}
+                  REPOSITORY_URL: ${{ github.server_url }}/${{ github.repository }}
+                  COMMIT_URL: ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}
+                  ACTION_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+                  STATUS: success
+              run: envsubst < email-template.html > README.html
 
-    #         - name: Show status job_check
-    #           run: echo ${{ needs.job_check.outputs.job_check_status }}
-
-    #         - name: Show status job_build
-    #           run: echo ${{ needs.job_build.outputs.job_build_status }}
-
-    #         - name: Prepaser HTML
-    #           env:
-    #               REPOSITORY: ${{ github.repository }}
-    #               REPOSITORY_OWNER: ${{ github.repository_owner }}
-    #               BRANCH: ${{ github.ref_name }}
-    #               REF: ${{ github.ref }}
-    #               COMMIT_SHA: ${{ github.sha }}
-    #               ACTOR: ${{ github.actor }}
-    #               WORKFLOW_NAME: ${{ github.workflow }}
-    #               JOB_NAME: ${{ github.job }}
-    #               EVENT_NAME: ${{ github.event_name }}
-    #               RUN_ID: ${{ github.run_id }}
-    #               RUN_NUMBER: ${{ github.run_number }}
-    #               RUN_ATTEMPT: ${{ github.run_attempt }}
-    #               SERVER_URL: ${{ github.server_url }}
-    #               REPOSITORY_URL: ${{ github.server_url }}/${{ github.repository }}
-    #               COMMIT_URL: ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}
-    #               ACTION_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-    #               STATUS: success
-    #           run: envsubst < email-template.html > README.html
-
-    #         - name: Send mail
-    #           uses: dawidd6/action-send-mail@v23
-    #           with:
-    #               server_address: smtp.gmail.com
-    #               server_port: 465
-    #               secure: true
-    #               username: rachelhuynh.1903@gmail.com
-    #               password: ftnuyysukdnfarbk
-    #               subject: Github Actions job result
-    #               to: rachelhuynh.1903@gmail.com
-    #               from: "Tuna <rachelhuynh.1903@gmail>"
-    #               body: Build job of ${{github.repository}} completed successfully!
-    #               html_body: file://README.html
+            - name: Send mail
+              uses: dawidd6/action-send-mail@v23
+              with:
+                  server_address: smtp.gmail.com
+                  server_port: 465
+                  secure: true
+                  username: rachelhuynh.1903@gmail.com
+                  password: ftnuyysukdnfarbk
+                  subject: Github Actions job result
+                  to: rachelhuynh.1903@gmail.com
+                  from: "Tuna <rachelhuynh.1903@gmail>"
+                  body: Build job of ${{github.repository}} completed successfully!
+                  html_body: file://README.html
   

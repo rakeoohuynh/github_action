@@ -1,0 +1,146 @@
+name: Deploy hub image
+
+on:
+    push:
+      branches: [main]
+env:
+  SSH_SERVER: ${{secrets.SSH_USER}}@${{secrets.SSH_IP}}
+  WORK_DIR: /home/ubuntu/devops_05/go_gin_be
+  COMPOSE_FILE_DIR: /home/ubuntu/devops_05
+  COMPOSE_SERVICE:  go_gin_be
+  IMAGE_NAME: ${{secrets.DOCKER_USER}}/go_gin_be_img:latest
+
+jobs:
+    job_check:
+        runs-on: ubuntu-latest
+
+        outputs:
+            job_check_status: ${{ steps.check.outputs.status }}
+
+        steps:
+            - name: Checkout source
+              uses: actions/checkout@v7.0.1
+
+            - name: Use common
+              uses: ./.github/actions
+              with:
+                ssh-key: ${{secrets.SSH_KEY}}
+                ssh-ip: ${{secrets.SSH_IP}}
+
+            - name: Check Dockerfile file
+              run: test -f Dockerfile
+
+            - name: Check env file
+              run: |
+                  ssh $SSH_SERVER "
+                    set -e
+
+                    cd $WORK_DIR
+                    ls -la
+                    test -f .env
+                  "
+
+            - name: Check docker compose file
+              run: |
+                  ssh $SSH_SERVER "
+                    set -e
+
+                    cd $COMPOSE_FILE_DIR
+                    ls -la
+                    test -f docker-compose.yml
+                  "
+
+    job_build:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout source
+              uses: actions/checkout@v7.0.1
+
+            - name: Use common
+              uses: ./.github/actions
+              with:
+                ssh-key: ${{secrets.SSH_KEY}}
+                ssh-ip: ${{secrets.SSH_IP}}
+
+
+            
+            - name : Build image docker
+              run: docker build -t $IMAGE_NAME .
+
+            - name: Docker login
+              run: docker login -u ${{secrets.DOCKER_USER}} -p ${{secrets.DOCKER_PASS}}
+
+            - name: Push image to Docker hub
+              run: docker push $IMAGE_NAME 
+    job_deploy:
+        runs-on: ubuntu-latest
+        needs: [job_check,job_build]
+
+        steps:
+            - name: Checkout source
+              uses: actions/checkout@v7.0.1
+
+            - name: Use common
+              uses: ./.github/actions
+              with:
+                ssh-key: ${{secrets.SSH_KEY}}
+                ssh-ip: ${{secrets.SSH_IP}}
+
+
+            
+            - name : Run new image
+              run: |
+                  ssh $SSH_SERVER "
+                    set -e
+                    cd $COMPOSE_FILE_DIR
+                    docker compose pull $COMPOSE_SERVICE
+                    docker compose up -d --force-recreate $COMPOSE_SERVICE
+                  "
+
+
+    
+    job_noti:
+        runs-on: ubuntu-latest
+        needs: [job_deploy]
+
+        steps:
+            - name: Checkout source
+              id: check-source
+              uses: actions/checkout@v7.0.1
+
+            - name: Prepaser HTML
+              env:
+                  REPOSITORY: ${{ github.repository }}
+                  REPOSITORY_OWNER: ${{ github.repository_owner }}
+                  BRANCH: ${{ github.ref_name }}
+                  REF: ${{ github.ref }}
+                  COMMIT_SHA: ${{ github.sha }}
+                  ACTOR: ${{ github.actor }}
+                  WORKFLOW_NAME: ${{ github.workflow }}
+                  JOB_NAME: ${{ github.job }}
+                  EVENT_NAME: ${{ github.event_name }}
+                  RUN_ID: ${{ github.run_id }}
+                  RUN_NUMBER: ${{ github.run_number }}
+                  RUN_ATTEMPT: ${{ github.run_attempt }}
+                  SERVER_URL: ${{ github.server_url }}
+                  REPOSITORY_URL: ${{ github.server_url }}/${{ github.repository }}
+                  COMMIT_URL: ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}
+                  ACTION_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+                  STATUS: success
+              run: envsubst < email-template.html > README.html
+
+            - name: Send mail
+              uses: dawidd6/action-send-mail@v23
+              with:
+                  server_address: smtp.gmail.com
+                  server_port: 465
+                  secure: true
+                  username: rachelhuynh.1903@gmail.com
+                  password: ftnuyysukdnfarbk
+                  subject: Github Actions job result
+                  to: rachelhuynh.1903@gmail.com
+                  from: "Tuna <rachelhuynh.1903@gmail>"
+                  body: Build job of ${{github.repository}} completed successfully!
+                  html_body: file://README.html
+  
