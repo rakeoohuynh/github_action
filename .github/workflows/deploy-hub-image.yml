@@ -137,8 +137,8 @@ jobs:
                   server_address: smtp.gmail.com
                   server_port: 465
                   secure: true
-                  username: rachelhuynh.1903@gmail.com
-                  password: ftnuyysukdnfarbk
+                  username: ${{secrets.EMAIL_USERNAME}}
+                  password: ${{secrets.EMAIL_PASS}}
                   subject: Github Actions job result
                   to: rachelhuynh.1903@gmail.com
                   from: "Tuna <rachelhuynh.1903@gmail>"
