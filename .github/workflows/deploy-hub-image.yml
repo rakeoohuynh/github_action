@@ -71,6 +71,7 @@ jobs:
             - name: Docker login
               run: docker login -u ${{secrets.DOCKER_USER}} -p ${{secrets.DOCKER_PASS}}
 
+
             - name: Push image to Docker hub
               run: docker push $IMAGE_NAME 
     job_deploy:
