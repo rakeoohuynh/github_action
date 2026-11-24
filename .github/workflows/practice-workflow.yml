@@ -1,24 +1,33 @@
+# Workflow luyện tập: các job truyền output cho nhau, quét secret và gửi mail
 name: Practice WorkFlow
 
 on:
     #   push:
+    # Chỉ chạy thủ công bằng nút "Run workflow" ở tab Actions (không tự chạy khi push)
     workflow_dispatch:
 
+# Thứ tự chạy: job_check và job_build chạy SONG SONG -> job_deploy (chờ cả 2)
 jobs:
+    # ===== JOB 1: kiểm tra source =====
     job_check:
         runs-on: ubuntu-latest
 
+        # Khai báo output của job để job khác đọc được, lấy từ output của step có id "check"
         outputs:
             job_check_status: ${{ steps.check.outputs.status }}
 
         steps:
+            # Tải source code từ repo về máy runner
             - name: Checkout source
               id: check-source
               uses: actions/checkout@v7.0.1
 
+            # Quét repo tìm secret bị lộ (password, token, key...)
             - name: TruffleHog OSS
               uses: trufflesecurity/trufflehog@v3.99.7
 
+            # Kiểm tra README.md tồn tại (không có thì job fail)
+            # Ghi status=failed vào $GITHUB_OUTPUT để làm output của step (id: check)
             - name: Check Readme file
               id: check
               run: |
@@ -26,38 +35,50 @@ jobs:
                   test -f README.md
                   echo "status=failed" >> $GITHUB_OUTPUT
 
+            # In ra output của step "check" trong cùng job: steps.<id>.outputs.<tên>
             - name: show
               run: echo ${{ steps.check.outputs.status }}
 
+    # ===== JOB 2: ví dụ job chỉ tạo output =====
     job_build:
         runs-on: ubuntu-latest
 
+        # Output của job lấy từ step có id "output"
         outputs:
             job_build_status: ${{ steps.output.outputs.status }}
 
         steps:
+            # Ghi status=success vào $GITHUB_OUTPUT (output của step id: output)
             - name: output
               id: output
               run: echo "status=success" >> $GITHUB_OUTPUT
 
+    # ===== JOB 3: đọc kết quả các job trước rồi gửi mail =====
+    # needs: chỉ chạy khi job_check và job_build đều thành công
     job_deploy:
         runs-on: ubuntu-latest
         needs: [job_check, job_build]
 
         steps:
+            # Tải source code (để có email-template.html)
             - name: Checkout source
               id: check-source
               uses: actions/checkout@v7.0.1
 
+            # Quét lộ secret lần nữa
             - name: TruffleHog OSS
               uses: trufflesecurity/trufflehog@v3.99.7
 
+            # Đọc output của job khác qua needs.<tên_job>.outputs.<tên_output>
             - name: Show status job_check
               run: echo ${{ needs.job_check.outputs.job_check_status }}
 
+            # Đọc output của job_build
             - name: Show status job_build
               run: echo ${{ needs.job_build.outputs.job_build_status }}
 
+            # Truyền thông tin lần chạy (repo, branch, commit, người chạy...) vào biến môi trường
+            # envsubst điền các biến đó vào email-template.html -> tạo README.html
             - name: Prepaser HTML
               env:
                   REPOSITORY: ${{ github.repository }}
@@ -79,12 +100,15 @@ jobs:
                   STATUS: success
               run: envsubst < email-template.html > README.html
 
+            # Gửi mail qua SMTP Gmail (cổng 465, SSL), nội dung lấy từ README.html
             - name: Send mail
               uses: dawidd6/action-send-mail@v23
               with:
                   server_address: smtp.gmail.com
                   server_port: 465
                   secure: true
+                  # CẢNH BÁO: email và mật khẩu đang ghi thẳng trong file, ai xem repo cũng thấy.
+                  # Nên chuyển sang GitHub Secrets (${{secrets.EMAIL_USERNAME}}, ${{secrets.EMAIL_PASS}})
                   username: rachelhuynh.1903@gmail.com
                   password: ftnuyysukdnfarbk
                   subject: Github Actions job result

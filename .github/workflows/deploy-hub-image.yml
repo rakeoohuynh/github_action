@@ -1,35 +1,51 @@
+# Workflow: build image -> push lên Docker Hub -> server pull về rồi chạy lại container
 name: Deploy hub image
 
+# Khi nào chạy: mỗi lần push code lên nhánh main
 on:
     push:
       branches: [main]
+# Biến dùng chung cho mọi job (gọi bằng $TEN_BIEN trong lệnh shell)
 env:
+  # Địa chỉ đăng nhập SSH, dạng user@ip (lấy từ GitHub Secrets)
   SSH_SERVER: ${{secrets.SSH_USER}}@${{secrets.SSH_IP}}
+  # Thư mục source của service trên server (nơi chứa file .env)
   WORK_DIR: /home/ubuntu/devops_05/go_gin_be
+  # Thư mục chứa docker-compose.yml trên server
   COMPOSE_FILE_DIR: /home/ubuntu/devops_05
+  # Tên service trong docker-compose.yml cần cập nhật
   COMPOSE_SERVICE:  go_gin_be
+  # Tên image trên Docker Hub, dạng <user_dockerhub>/go_gin_be_img:latest
   IMAGE_NAME: ${{secrets.DOCKER_USER}}/go_gin_be_img:latest
 
+# Thứ tự chạy: job_check và job_build chạy SONG SONG -> job_deploy (chờ cả 2) -> job_noti
 jobs:
+    # ===== JOB 1: kiểm tra điều kiện trước khi deploy (Dockerfile, .env, docker-compose.yml) =====
     job_check:
         runs-on: ubuntu-latest
 
+        # Kết quả job để job khác đọc qua needs.job_check.outputs.job_check_status
+        # (job này chưa có step id "check" nên giá trị hiện đang rỗng)
         outputs:
             job_check_status: ${{ steps.check.outputs.status }}
 
         steps:
+            # Tải source code từ repo về máy runner
             - name: Checkout source
               uses: actions/checkout@v7.0.1
 
+            # Gọi action dùng chung ./.github/actions: quét lộ secret (TruffleHog), nạp SSH key, thêm server vào known_hosts
             - name: Use common
               uses: ./.github/actions
               with:
                 ssh-key: ${{secrets.SSH_KEY}}
                 ssh-ip: ${{secrets.SSH_IP}}
 
+            # Dockerfile phải có trong source, không có thì job fail
             - name: Check Dockerfile file
               run: test -f Dockerfile
 
+            # SSH vào server kiểm tra file .env đã có chưa (set -e: có lệnh lỗi là dừng ngay)
             - name: Check env file
               run: |
                   ssh $SSH_SERVER "
@@ -40,6 +56,7 @@ jobs:
                     test -f .env
                   "
 
+            # SSH vào server kiểm tra file docker-compose.yml đã có chưa
             - name: Check docker compose file
               run: |
                   ssh $SSH_SERVER "
@@ -50,13 +67,16 @@ jobs:
                     test -f docker-compose.yml
                   "
 
+    # ===== JOB 2: build image rồi push lên Docker Hub =====
     job_build:
         runs-on: ubuntu-latest
 
         steps:
+            # Tải source code (như job_check)
             - name: Checkout source
               uses: actions/checkout@v7.0.1
 
+            # Dùng lại action dùng chung (như job_check)
             - name: Use common
               uses: ./.github/actions
               with:
@@ -65,23 +85,30 @@ jobs:
 
 
             
+            # Build image từ Dockerfile, đặt tên theo $IMAGE_NAME
             - name : Build image docker
               run: docker build -t $IMAGE_NAME .
 
+            # Đăng nhập Docker Hub (user và mật khẩu lấy từ Secrets)
             - name: Docker login
               run: docker login -u ${{secrets.DOCKER_USER}} -p ${{secrets.DOCKER_PASS}}
 
 
+            # Đẩy image lên Docker Hub
             - name: Push image to Docker hub
               run: docker push $IMAGE_NAME 
+    # ===== JOB 3: SSH vào server, kéo image mới và chạy lại container =====
+    # needs: chỉ chạy khi job_check và job_build đều thành công
     job_deploy:
         runs-on: ubuntu-latest
         needs: [job_check,job_build]
 
         steps:
+            # Tải source code (như trên)
             - name: Checkout source
               uses: actions/checkout@v7.0.1
 
+            # Dùng lại action dùng chung (như trên)
             - name: Use common
               uses: ./.github/actions
               with:
@@ -90,6 +117,8 @@ jobs:
 
 
             
+            # docker compose pull: kéo image mới từ Docker Hub
+            # up -d --force-recreate: tạo lại container với image vừa kéo
             - name : Run new image
               run: |
                   ssh $SSH_SERVER "
@@ -101,15 +130,20 @@ jobs:
 
 
     
+    # ===== JOB 4: gửi mail báo kết quả sau khi deploy xong =====
+    # needs: chỉ chạy khi job_deploy thành công
     job_noti:
         runs-on: ubuntu-latest
         needs: [job_deploy]
 
         steps:
+            # Tải source code để có file email-template.html
             - name: Checkout source
               id: check-source
               uses: actions/checkout@v7.0.1
 
+            # Truyền thông tin lần chạy (repo, branch, commit, người push...) vào biến môi trường
+            # envsubst điền các biến đó vào email-template.html -> tạo README.html
             - name: Prepaser HTML
               env:
                   REPOSITORY: ${{ github.repository }}
@@ -131,6 +165,8 @@ jobs:
                   STATUS: success
               run: envsubst < email-template.html > README.html
 
+            # Gửi mail qua SMTP Gmail (cổng 465, SSL), nội dung lấy từ README.html
+            # username/password lấy từ Secrets, không ghi thẳng trong file
             - name: Send mail
               uses: dawidd6/action-send-mail@v23
               with:
